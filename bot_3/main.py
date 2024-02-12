@@ -1,6 +1,3 @@
-TOKEN = '6335546830:AAFojQ0Jho4qTKXUnbz2AL57wfiHxPCIoBs'
-EXCHANGE_API_KEY = 'a65d431a1dccf962c4b22009'
-
 import logging
 import httpx
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -13,13 +10,17 @@ from telegram.ext import (
     filters,
 )
 
+from bot_3.config import TOKEN, EXCHANGE_API_KEY
+
+
+token = TOKEN
+api_key = EXCHANGE_API_KEY
+
 # Установка уровня логирования
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-# Установка более высокого уровня логирования для httpx, чтобы избежать записи всех запросов GET и POST
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
 logger = logging.getLogger(__name__)
 
 # Определение состояний для машины состояний
@@ -34,10 +35,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Привет! Я бот для конвертации валют. Я могу помочь тебе узнать текущий курс валюты "
         "и выполнить конвертацию среди различных валют. Для начала конвертации используй команду /convert."
         "\n\nПример использования:"
-        "\n`/convert 100 USD to EUR`"
-        "\n\nТакже, ты можешь использовать команду /help для получения дополнительной информации."
+        "\n`/convert`"
+        "\nдалее вводи сумму для конвертирования, например 100"
+        "\nдалее вводи валюту, из которой нужно конвертировать, например USD"
+        "\nдалее вводи валюту, в которую нужно конвертировать, например RUB"
+        "\n\nТакже, ты можешь использовать команду /help для получения списка команд "
+        "\nи команду /cancel отмены текущего действия."
     )
-
     return CONVERT_AMOUNT
 
 
@@ -46,7 +50,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     logger.info("Help command received.")
     await update.message.reply_text(
         "Доступные команды:"
-        "\n/start - Начать разговор"
+        "\n/start - Запуск бота"
         "\n/convert - Начать конвертацию валют"
         "\n/cancel - Отменить текущее действие"
         "\n/help - Получить справку о доступных командах"
@@ -60,48 +64,51 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         f"До свидания, {user.first_name}! Надеюсь, мы еще увидимся.",
         reply_markup=ReplyKeyboardRemove(),
     )
-
     return ConversationHandler.END
+
+
+async def greet_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Приветствие пользователя."""
+    logger.info("Greet user message received.")
+    await update.message.reply_text("Привет! Как я могу вам помочь?")
+
+
+async def say_goodbye(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Прощание с пользователем."""
+    logger.info("Goodbye message received.")
+    await update.message.reply_text("До свидания! Если у вас возникнут вопросы, обращайтесь.")
 
 
 async def convert_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     logger.info("Convert command received. Waiting for amount.")
     await update.message.reply_text("Введите сумму, которую вы хотите конвертировать")
-    print('-----convert_amount----context----------', context)
     return CONVERT_FROM
 
 
 async def convert_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['amount'] = float(update.message.text)
     logger.info("Amount received: %f", context.user_data['amount'])
-    print('--1---convert_from----context----------', context.user_data['amount'])
     await update.message.reply_text("Введите валюту, из которой вы хотите конвертировать")
-    print('--2---convert_from----context----------', context.user_data['amount'])
     return CONVERT_TO
 
 
 async def convert_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data['from_currency'] = update.message.text.upper()
     logger.info("From currency received: %s", context.user_data['from_currency'])
-    print('--1---convert_to----context----------', context.user_data['from_currency'])
     await update.message.reply_text("Введите валюту, в которую вы хотите конвертировать")
-    print('--2---convert_to----context----------', context.user_data['from_currency'])
     return PERFORM_CONVERSION
 
 
 async def perform_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data = context.user_data
     from_currency = user_data['from_currency']
-    logger.info("To currency received: %s", update.message.text.upper())
-    print('--3---xxx----------', from_currency)
     user_data['to_currency'] = update.message.text.upper()
+
+    logger.info("To currency received: %s", update.message.text.upper())
     logger.info("To currency received: %s", user_data['to_currency'])
-    print('--3---user_data[to_currency]----------', user_data['to_currency'])
 
     try:
-        # base_currency = 'USD'
-        base_currency = from_currency
-        url = f'https://v6.exchangerate-api.com/v6/{EXCHANGE_API_KEY}/latest/{base_currency}'
+        url = f'https://v6.exchangerate-api.com/v6/{api_key}/latest/{from_currency}'
 
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
@@ -126,32 +133,13 @@ async def perform_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except ValueError as e:
         await update.message.reply_text(f"Error: {str(e)}")
 
-    # Переход в состояние CONVERT_AMOUNT
     return CONVERT_AMOUNT
 
 
-async def greet_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Приветствие пользователя."""
-    logger.info("Greet user message received.")
-    await update.message.reply_text("Привет! Как я могу вам помочь?")
-
-
-async def say_goodbye(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.info("Goodbye message received.")
-    """Прощание с пользователем."""
-    await update.message.reply_text("До свидания! Если у вас возникнут вопросы, обращайтесь.")
-
-
 def main() -> None:
-    application = Application.builder().token(TOKEN).build()
 
-    logging.basicConfig(
-        filename='bot_logs.log',
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        level=logging.INFO
-    )
-    logger = logging.getLogger(__name__)
-    # logger.info("Бот успешно запущен.")
+    application = Application.builder().token(token).build()
+    logger.info("Bot launched successfully.")
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
@@ -164,10 +152,6 @@ def main() -> None:
         fallbacks=[CommandHandler("cancel", cancel)],
     )
 
-    # application.add_handler(CommandHandler("help", help_command))
-    # application.add_handler(conv_handler)
-
-    # Обработчики сообщений:
     greet_handler = MessageHandler(
         filters.Regex(r'\b(?:привет|здравствуй|добрый день)\b') | filters.Regex(r'\b(?:hello|hi|good day)\b'),
         greet_user
@@ -176,10 +160,9 @@ def main() -> None:
         filters.Regex(r'\b(?:пока|до свидания)\b') | filters.Regex(r'\b(?:bye|see|you)\b'),
         say_goodbye
     )
-    # Регистрируем обработчики в приложении
+
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(conv_handler)
-
     application.add_handler(greet_handler)
     application.add_handler(goodbye_handler)
 

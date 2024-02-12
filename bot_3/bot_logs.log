@@ -1,0 +1,18 @@
+2024-02-12 07:57:39,199 - __main__ - INFO - Bot launched successfully.
+2024-02-12 07:57:40,425 - telegram.ext.Application - INFO - Application started
+2024-02-12 07:58:27,941 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "C:\Users\User\PythonProjects_23\pythonProject\test_11_bot_3\venv\Lib\site-packages\telegram\ext\_application.py", line 1264, in process_update
+    await coroutine
+  File "C:\Users\User\PythonProjects_23\pythonProject\test_11_bot_3\venv\Lib\site-packages\telegram\ext\_handlers\conversationhandler.py", line 857, in handle_update
+    new_state: object = await handler.handle_update(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\PythonProjects_23\pythonProject\test_11_bot_3\venv\Lib\site-packages\telegram\ext\_handlers\basehandler.py", line 157, in handle_update
+    return await self.callback(update, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\User\PythonProjects_23\pythonProject\test_11_bot_3\bot_3\main.py", line 30, in start
+    logger.info("Start command received.")
+    ^^^^^^
+NameError: name 'logger' is not defined
+2024-02-12 07:59:02,832 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2024-02-12 07:59:02,832 - telegram.ext.Application - INFO - Application.stop() complete
