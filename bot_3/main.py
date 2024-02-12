@@ -27,8 +27,13 @@ logger = logging.getLogger(__name__)
 CONVERT_AMOUNT, CONVERT_FROM, CONVERT_TO, PERFORM_CONVERSION = range(4)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Начало разговора и запрос у пользователя о его поле."""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Начало разговора и запрос у пользователя о его поле.
+
+    Возвращает:
+    - int: Состояние машины состояний - ожидание ввода суммы.
+    """
     logger.info("Start command received.")
 
     await update.message.reply_text(
@@ -46,7 +51,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Отправить сообщение с информацией о доступных командах."""
+    """
+    Отправить сообщение с информацией о доступных командах.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - None
+    """
     logger.info("Help command received.")
     await update.message.reply_text(
         "Доступные команды:"
@@ -58,6 +72,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Отменить текущее действие и попрощаться с пользователем.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - int: Состояние машины состояний - конец разговора.
+    """
     user = update.message.from_user
     logger.info("User %s canceled the conversation.", user.first_name)
     await update.message.reply_text(
@@ -68,24 +92,62 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def greet_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Приветствие пользователя."""
+    """
+    Приветствие пользователя.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - None
+    """
     logger.info("Greet user message received.")
     await update.message.reply_text("Привет! Как я могу вам помочь?")
 
 
 async def say_goodbye(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Прощание с пользователем."""
+    """
+    Прощание с пользователем.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - None
+    """
     logger.info("Goodbye message received.")
     await update.message.reply_text("До свидания! Если у вас возникнут вопросы, обращайтесь.")
 
 
 async def convert_amount(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Обработчик команды /convert, ожидающий ввода суммы.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - int: Состояние машины состояний - ожидание ввода суммы.
+    """
     logger.info("Convert command received. Waiting for amount.")
     await update.message.reply_text("Введите сумму, которую вы хотите конвертировать")
     return CONVERT_FROM
 
 
 async def convert_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Обработчик ввода суммы, ожидающий ввода валюты из которой конвертировать.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - int: Состояние машины состояний - ожидание ввода валюты из которой конвертировать.
+    """
     context.user_data['amount'] = float(update.message.text)
     logger.info("Amount received: %f", context.user_data['amount'])
     await update.message.reply_text("Введите валюту, из которой вы хотите конвертировать")
@@ -93,6 +155,16 @@ async def convert_from(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
 
 async def convert_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+    Обработчик ввода валюты из которой конвертировать, ожидающий ввода валюты в которую конвертировать.
+
+    Параметры:
+    - update: Update, объект с информацией о сообщении.
+    - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+    Возвращает:
+    - int: Состояние машины состояний - ожидание выполнения конвертации.
+    """
     context.user_data['from_currency'] = update.message.text.upper()
     logger.info("From currency received: %s", context.user_data['from_currency'])
     await update.message.reply_text("Введите валюту, в которую вы хотите конвертировать")
@@ -100,6 +172,16 @@ async def convert_to(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def perform_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """
+     Обработчик выполнения конвертации, запрос к API.
+
+     Параметры:
+     - update: Update, объект с информацией о сообщении.
+     - context: ContextTypes.DEFAULT_TYPE, объект с информацией о контексте.
+
+     Возвращает:
+     - int: Состояние машины состояний - ожидание ввода суммы.
+     """
     user_data = context.user_data
     from_currency = user_data['from_currency']
     user_data['to_currency'] = update.message.text.upper()
@@ -137,7 +219,12 @@ async def perform_conversion(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 def main() -> None:
+    """
+    Главная функция для запуска бота.
 
+    Возвращает:
+    - None
+    """
     application = Application.builder().token(token).build()
     logger.info("Bot launched successfully.")
 
